@@ -5,9 +5,9 @@ header-img: img/post-bg-desk.jpg
 email: lindiqiang8@gmail.com
 description: "Every failure is leading towards success."
 keyword: "BY, BY Blog, Diqiang的博客, diqiangL, iOS, Apple, iPhone"
-url: "http://diqiangl.github.io"          # your host, for absolute URL
+url: "https://diqiangl.github.io/"          # your host, for absolute URL
 baseurl: ""      # for example, '/blog' if your blog hosted on 'host/blog'
-github_repo: "https://github.com/DiqiangL/diqiangl.github.io.git" # you code repository
+github_repo: "https://github.com/DiqiangL/DiqiangL.github.io.git" # you code repository
 
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
