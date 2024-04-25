@@ -1,0 +1,188 @@
+---
+layout:     post
+title:      Softmax
+subtitle:   Softmax原理
+date:       2022-01-03
+author:     ldq
+header-img: img/post-bg-cook.jpg
+catalog: true
+tags:
+    - 机器学习
+---
+
+
+# Untitled
+
+# 前言
+
+提到二分类首先想到的可能就是逻辑回归算法。逻辑回归算法是在各个领域中应用比较广泛的机器学习算法。逻辑回归算法本身并不难，最关键的步骤就是将线性模型输出的实数域映射到[0, 1]表示概率分布的有效实数空间，其中Sigmoid函数刚好具有这样的功能。
+
+![Untitled](Untitled%2044aedf28e246446ea9d37d51c24f0df4/Untitled.png)
+
+例如使用逻辑回归算法预测患者是否有恶性肿瘤的二分类问题中，输出层可以只设置一个节点，表示某个事件A发生的概率为 𝑃(𝐴|𝑥)，其中x为输入。对于患者是否有恶性肿瘤的二分类问题中，A事件可以表示为恶性肿瘤或表示为良性肿瘤（𝐴表示为良性肿瘤或恶性肿瘤），x为患者的一些特征指标。
+
+![Untitled](Untitled%2044aedf28e246446ea9d37d51c24f0df4/Untitled%201.png)
+
+
+对于二分类问题，除了可以使用单个输出节点表示事件A发生的概率 𝑃(𝐴|𝑥) 外，还可以分别预测
+
+𝑃(𝐴|𝑥)和 𝑃(𝐴¯|𝑥)，并满足约束：𝑃(𝐴|𝑥)+𝑃(𝐴¯|𝑥)=1。其中𝐴¯ 表示事件A的对立事件。两个节点输出的二分类相比于单节点输出的二分类多了一个 𝑃(𝐴|𝑥)+𝑃(𝐴¯|𝑥)=1 的约束条件，这个约束条件将输出节点的输出值变成一个概率分布，简单来说各个输出节点的输出值范围映射到[0, 1]，并且约束各个输出节点的输出值的和为1。**当然可以将输出为两个节点的二分类推广成拥有n个输出节点的n分类问题。**
+
+有没有将各个输出节点的输出值范围映射到[0, 1]，并且约束各个输出节点的输出值的和为1的函数呢？
+
+当然，这个函数就是Softmax函数。
+
+## **1. 什么是Softmax？**
+
+Softmax从字面上来说，可以分成soft和max两个部分。max故名思议就是最大值的意思。Softmax的核心在于soft，而soft有软的含义，与之相对的是hard硬。很多场景中需要我们找出数组所有元素中值最大的元素，实质上都是求的hardmax。下面使用Numpy模块以及TensorFlow深度学习框架实现hardmax。
+
+使用Numpy模块实现hardmax：
+
+```python
+import numpy as np
+
+a = np.array([1, 2, 3, 4, 5]) # 创建ndarray数组
+a_max = np.max(a)
+print(a_max) # 5
+```
+
+使用TensorFlow深度学习框架实现hardmax：
+
+```python
+import tensorflow as tf
+
+print(tf.__version__) # 2.0.0
+a_max = tf.reduce_max([1, 2, 3, 4, 5])
+print(a_max) # tf.Tensor(5, shape=(), dtype=int32)
+```
+
+通过上面的例子可以看出hardmax最大的特点就是只选出其中一个最大的值，即非黑即白。但是往往在实际中这种方式是不合情理的，比如对于文本分类来说，一篇文章或多或少包含着各种主题信息，我们更期望得到文章对于每个可能的文本类别的概率值（置信度），可以简单理解成属于对应类别的可信度。所以此时用到了soft的概念，Softmax的含义就在于不再唯一的确定某一个最大值，而是为每个输出分类的结果都赋予一个概率值，表示属于每个类别的可能性。
+
+下面给出Softmax函数的定义（以第j个节点输出为例）：
+
+![Untitled](Untitled%2044aedf28e246446ea9d37d51c24f0df4/Untitled%202.png)
+
+其中zj 为第j个节点的输出值，k为输出节点的个数，即分类的类别个数。通过Softmax函数就可以将多分类的输出值转换为范围在[0, 1]和为1的概率分布。
+
+引入指数函数对于Softmax函数是把双刃剑，即得到了优点也暴露出了缺点：
+
+## **2、Softmax引入指数的优点：**
+
+![Untitled](Untitled%2044aedf28e246446ea9d37d51c24f0df4/Untitled%203.png)
+
+1、指数函数曲线呈现递增趋势，最重要的是斜率逐渐增大，也就是说在x轴上一个很小的变化，可以导致y轴上很大的变化。这种函数曲线能够将输出的数值拉开距离。
+
+假设拥有三个输出节点的输出值为 𝑧1,𝑧2,𝑧3 为[2, 3, 5]。分别采用softmax与不使用softmax对比。
+
+```python
+import tensorflow as tf
+
+print(tf.__version__) # 2.0.0
+a = tf.constant([2, 3, 5], dtype = tf.float32)
+
+b1 = a / tf.reduce_sum(a) # 不使用指数
+print(b1) # tf.Tensor([0.2 0.3 0.5], shape=(3,), dtype=float32)
+
+b2 = tf.nn.softmax(a) # 使用指数的Softmax
+print(b2) # tf.Tensor([0.04201007 0.11419519 0.8437947 ], shape=(3,), dtype=float32)
+```
+
+两种计算方式的输出结果分别是：
+
+- tf.Tensor([0.2 0.3 0.5], shape=(3,), dtype=float32)
+- tf.Tensor([0.04201007 0.11419519 0.8437947 ], shape=(3,), dtype=float32)
+
+结果还是挺明显的，经过使用指数形式的Softmax函数能够将差距大的数值距离拉的更大。
+
+2、在深度学习中通常使用反向传播求解梯度进而使用梯度下降进行参数更新的过程，而指数函数在求导的时候比较方便。比如 (𝑒𝑥)′=𝑒𝑥 。
+
+## **3、Softmax引入指数的缺点：**
+
+指数函数的曲线斜率逐渐增大虽然能够将输出值拉开距离，但是也带来了缺点，当 𝑧𝑖 值非常大的话，计算得到的数值也会变的非常大，数值可能会溢出。
+
+```python
+import numpy as np
+
+scores = np.array([123, 456, 789])
+softmax = np.exp(scores) / np.sum(np.exp(scores))
+print(softmax) # [ 0.  0. nan]
+```
+
+当然针对数值溢出有其对应的优化方法，将每一个输出值减去输出值中最大的值。
+
+```python
+import numpy as np
+
+scores = np.array([123, 456, 789])
+scores -= np.max(scores)
+p = np.exp(scores) / np.sum(np.exp(scores))
+print(p) # [5.75274406e-290 2.39848787e-145 1.00000000e+000]
+```
+
+## 4、Tf中使用Softmax
+
+!!! 这里需要注意一下，当使用Softmax函数作为输出节点的激活函数的时候，一般使用交叉熵作为损失函数。由于Softmax函数的数值计算过程中，很容易因为输出节点的输出值比较大而发生数值溢出的现象，在计算交叉熵的时候也可能会出现数值溢出的问题。为了数值计算的稳定性，TensorFlow提供了一个统一的接口，将Softmax与交叉熵损失函数同时实现，同时也处理了数值不稳定的异常，使用TensorFlow深度学习框架的时候，一般推荐使用这个统一的接口，避免分开使用Softmax函数与交叉熵损失函数。
+
+TensorFlow提供的统一函数式接口为：
+
+```python
+import tensorflow as tf
+
+print(tf.__version__) # 2.0.0
+tf.keras.losses.categorical_crossentropy(y_true, y_pred, from_logits = False)
+```
+
+其中y_true代表了One-hot编码后的真实标签，y_pred表示网络的实际预测值：
+
+- 当from_logits设置为True时，y_pred表示未经Softmax函数的输出值；
+- 当from_logits设置为False时，y_pred表示为经过Softmax函数后的输出值；
+
+为了在计算Softmax函数时候数值的稳定，一般将from_logits设置为True，此时tf.keras.losses.categorical_crossentropy将在内部进行Softmax的计算，所以在不需要在输出节点上添加Softmax激活函数。
+
+```python
+import tensorflow as tf
+
+print(tf.__version__)
+z = tf.random.normal([2, 10]) # 构造2个样本的10类别输出的输出值
+y = tf.constant([1, 3]) # 两个样本的真实样本标签是1和3
+y_true = tf.one_hot(y, depth = 10) # 构造onehot编码
+
+# 输出层未经过Softmax激活函数,因此将from_logits设置为True
+loss1 = tf.keras.losses.categorical_crossentropy(y_true, z, from_logits = True)
+loss1 = tf.reduce_mean(loss1)
+print(loss1) # tf.Tensor(2.6680193, shape=(), dtype=float32)
+
+y_pred = tf.nn.softmax(z)
+# 输出层经过Softmax激活函数,因此将from_logits设置为False
+loss2 = tf.keras.losses.categorical_crossentropy(y_true, y_pred, from_logits = False)
+loss2 = tf.reduce_mean(loss2)
+print(loss2) # tf.Tensor(2.668019, shape=(), dtype=float32)
+```
+
+虽然上面两个过程结果差不多，但是当遇到一些不正常的数值时，将from_logits设置为True时TensorFlow会启用一些优化机制。**因此推荐使用将from_logits参数设置为True的统一接口。**
+
+## 5、Softmax 函数的求导
+
+单个输出节点的二分类问题一般在输出节点上使用Sigmoid函数，拥有两个及其以上的输出节点的二分类或者多分类问题一般在输出节点上使用Softmax函数。
+
+现在可以构建比较复杂的神经网络模型，最重要的原因之一得益于反向传播算法。反向传播算法从输出端也就是损失函数开始向输入端基于链式法则计算梯度，然后通过计算得到的梯度，应用梯度下降算法迭代更新待优化参数。
+
+由于反向传播计算梯度基于链式法则，因此下面为了更加清晰，首先推导一下Softmax函数的导数。作为最后一层的激活函数，求导本身并不复杂，**但是需要注意需要分成两种情况来考虑。**
+
+举例：
+
+![Untitled](Untitled%2044aedf28e246446ea9d37d51c24f0df4/Untitled%204.png)
+
+可以将梯度看成是高维的导数，而导数简单来说就是切线的斜率，也就是y轴的改变量与x轴的改变量的比值。通过上面的计算图可以得知， 𝑥1 和 𝑥2 的改变量都会影响 𝑦1 的值，因此需要让𝑦1与𝑥1 和 𝑥2分别求导，很明显此时计算出来的两个偏导数结果不同，∂𝑦/∂𝑥1=1 ，∂𝑦/∂𝑥2=2 。
+
+绘制拥有三个输出节点的Softmax函数的计算图：
+
+![Untitled](Untitled%2044aedf28e246446ea9d37d51c24f0df4/Untitled%205.png)
+
+![Untitled](Untitled%2044aedf28e246446ea9d37d51c24f0df4/Untitled%206.png)
+
+![Untitled](Untitled%2044aedf28e246446ea9d37d51c24f0df4/Untitled%207.png)
+
+![Untitled](Untitled%2044aedf28e246446ea9d37d51c24f0df4/Untitled%208.png)
+
+6、
